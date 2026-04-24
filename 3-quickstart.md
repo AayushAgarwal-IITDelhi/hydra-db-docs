@@ -16,7 +16,7 @@
 flowchart LR
  A[1. Create Tenant] --> B[2. Upload Memory]
  B --> C[3. Wait for processing]
- C -Wait for the user prompt-> D[4. Recall Context]
+ C -->|Wait for the user prompt| D[4. Recall Context]
  D --> E[5. Pass to LLM]
 
  style A fill:#e8f4f8
