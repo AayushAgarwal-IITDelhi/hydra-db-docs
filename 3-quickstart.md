@@ -2,9 +2,9 @@
 
 > Build your first working recall in five minutes.
 
-**Already have a tenant?** Jump to [Step 2 — Upload memories](#step-2-upload-memories)
+**Already have a tenant?** Jump to [Step 2 - Upload memories](#step-2-upload-memories)
 
-**Already ingested data?** Jump to [Step 4 — Recall context](#step-4-recall-context)
+**Already ingested data?** Jump to [Step 4 - Recall context](#step-4-recall-context)
 
 **Prefer the SDK?** See [SDKs](/sdk/overview) for TypeScript and Python clients.
 
@@ -41,7 +41,7 @@ Authorization: Bearer <your_api_key>
 
 ---
 
-## Step 1 — Create a tenant
+## Step 1 - Create a tenant
 
 A tenant is your isolated workspace.
 
@@ -93,7 +93,7 @@ Wait until `graph_status: true` and both values in `vectorstore_status` are `tru
 
 ---
 
-## Step 2 — Upload memories
+## Step 2 - Upload memories
 
 > A list of all memories, along with their status, is available on [app.hydradb.com/knowledge](https://app.hydradb.com/knowledge)
 
@@ -109,7 +109,7 @@ curl -X POST 'https://api.hydradb.com/ingestion/upload_knowledge' \
   -F "files=@/path/to/contract.pdf" \
  -F "tenant_id=my_first_tenant"
 ```
-**Response:""
+**Response:**
 
 ```json
 {
@@ -132,8 +132,6 @@ curl -X POST 'https://api.hydradb.com/ingestion/upload_knowledge' \
 
 Use this for user preferences, conversation history, or inline text.
 
-> A list of all memories, along with their status, is available on [app.hydradb.com/knowledge](https://app.hydradb.com/knowledge)
-
 ```bash
 curl -X POST 'https://api.hydradb.com/memories/add_memory' \
  -H "Authorization: Bearer <your_api_key>" \
@@ -149,7 +147,7 @@ curl -X POST 'https://api.hydradb.com/memories/add_memory' \
  ]
  }'
 ```
-**Response**:
+**Response:**
 
 ``` json
 {
@@ -173,7 +171,7 @@ Both return a `source_id` which you can use to track processing and reference th
 
 ---
 
-## Step 3 — Verify processing
+## Step 3 - Verify processing
 
 Ingestion runs through a pipeline before content is searchable:
 
@@ -218,7 +216,7 @@ Poll every few seconds until the status is `completed`. Most documents index in 
 
 ---
 
-## Step 4 — Recall context
+## Step 4 - Recall context
 
 Now the interesting part. Ask HydraDB what it knows:
 
@@ -236,7 +234,7 @@ curl -X POST 'https://api.hydradb.com/recall/full_recall' \
 ```
 **Flags worth knowing:**
 
-- `mode: "thinking"` enables personalized, multi-stage recall (higher latency, better results). The default is `"fast"` — simpler retrieval without personalization.
+- `mode: "thinking"` enables personalized, multi-stage recall (higher latency, better results). The default is "fast", a simpler retrieval without personalization.
 - `graph_context: true` enriches the response with entity relationships from the knowledge graph.
 - For **documents and knowledge**, use `/recall/full_recall`. For **user memories**, use [`/recall/recall_preferences`](/api-reference/endpoint/recall-preferences).
 
@@ -276,7 +274,7 @@ The `chunks` array contains retrieved content ranked by relevance. The `graph_co
 
 ---
 
-## Step 5 — Pass it to your LLM
+## Step 5 - Pass it to your LLM
 
 The `full_recall` response is JSON. Your LLM wants a clean string. Flatten chunks and graph context into a readable format, then pass it as prompt context.
 
