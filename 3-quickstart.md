@@ -1,14 +1,10 @@
-> ## Documentation Index
-> Fetch the complete documentation index at: https://docs.hydradb.com/llms.txt
-> Use this file to discover all available pages before exploring further.
-
 # Quickstart
 
 > Build your first working recall in five minutes.
 
-**Already have a tenant?** Jump to [Step 2 — Upload memories](#step-2--upload-memories)
+**Already have a tenant?** Jump to [Step 2 — Upload memories](#step-2-upload-memories)
 
-**Already ingested data?** Jump to [Step 4 — Recall context](#step-4--recall-context)
+**Already ingested data?** Jump to [Step 4 — Recall context](#step-4-recall-context)
 
 **Prefer the SDK?** See [SDKs](/sdk/overview) for TypeScript and Python clients.
 
