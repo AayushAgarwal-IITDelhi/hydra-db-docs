@@ -6,9 +6,10 @@
 
 > Build your first working recall in five minutes.
 
-**Time to first recall:** ~5 minutes
 **Already have a tenant?** Jump to [Step 2 — Upload memories](#step-2--upload-memories)
+
 **Already ingested data?** Jump to [Step 4 — Recall context](#step-4--recall-context)
+
 **Prefer the SDK?** See [SDKs](/sdk/overview) for TypeScript and Python clients.
 
 ---
@@ -17,19 +18,19 @@
 
 ```mermaid
 flowchart LR
-    A[1. Create Tenant] --> B[2. Upload Memory]
-    B --> C[3. Wait for Processing]
-    C --> D[4. Recall Context]
-    D --> E[5. Pass to LLM]
+ A[1. Create Tenant] --> B[2. Upload Memory]
+ B --> C[3. Wait for processing]
+ C -Wait for the user prompt-> D[4. Recall Context]
+ D --> E[5. Pass to LLM]
 
-    style A fill:#e8f4f8
-    style B fill:#e8f4f8
-    style C fill:#fff4e8
-    style D fill:#e8f8ea
-    style E fill:#e8f8ea
+ style A fill:#e8f4f8
+ style B fill:#e8f4f8
+ style C fill:#fff4e8
+ style D fill:#e8f8ea
+ style E fill:#e8f8ea
 ```
 
-The orange step is async — HydraDB parses, chunks, embeds, and graphs your content in the background. The rest runs in real time.
+The orange step is async, i.e., HydraDB parses, chunks, embeds, and graphs your content in the background. The rest runs in real time.
 
 ## Prerequisites
 
@@ -48,11 +49,13 @@ Authorization: Bearer <your_api_key>
 
 A tenant is your isolated workspace.
 
+> A list of all tenants, along with their status, is available on [app.hydradb.com/tenants](https://app.hydradb.com/tenants)
+
 ```bash
 curl -X POST 'https://api.hydradb.com/tenants/create' \
-  -H "Authorization: Bearer <your_api_key>" \
+ -H "Authorization: Bearer <your_api_key>" \
   -H "Content-Type: application/json" \
-  -d '{"tenant_id": "my_first_tenant"}'
+ -d '{"tenant_id": "my_first_tenant"}'
 ```
 
 **Response:**
@@ -61,7 +64,7 @@ curl -X POST 'https://api.hydradb.com/tenants/create' \
 {
   "status": "accepted",
   "tenant_id": "my_first_tenant",
-  "message": "Tenant creation started in the background."
+  "message": "Tenant creation started in the background. Use GET /tenants/infra/status?tenant_id=... to check progress."
 }
 ```
 
@@ -69,49 +72,108 @@ Tenant creation is **asynchronous**. Poll for readiness before ingesting:
 
 ```bash
 curl 'https://api.hydradb.com/tenants/infra/status?tenant_id=my_first_tenant' \
-  -H "Authorization: Bearer <your_api_key>"
+ -H "Authorization: Bearer <your_api_key>"
 ```
 
-Wait until `graph_status: true` and both values in `vectorstore_status` are `true`. Typically ready in 10–30 seconds.
+Wait until `graph_status: true` and both values in `vectorstore_status` are `true`.
+
+**Response:**
+
+```json
+{
+    "tenant_id": "my_first_tenant",
+    "org_id": "free",
+    "infra": {
+        "scheduler_status": true,
+        "graph_status": true,
+        "vectorstore_status": [
+            true,
+            true
+        ]
+    },
+    "message": "Deployed infrastructure status"
+}
+```
 
 ---
 
 ## Step 2 — Upload memories
 
-Two options depending on what you're ingesting.
+> A list of all memories, along with their status, is available on [app.hydradb.com/knowledge](https://app.hydradb.com/knowledge)
 
-### Option A — Upload a document (PDF, DOCX, etc.)
+There are two ways, depending on what you're ingesting.
 
-Use this for files HydraDB should parse and chunk for you.
+### Option A: Uploading documents (PDF, DOCX, etc.)
+
+Use this for files HydraDB should parse and chunk.
 
 ```bash
 curl -X POST 'https://api.hydradb.com/ingestion/upload_knowledge' \
-  -H "Authorization: Bearer <your_api_key>" \
+ -H "Authorization: Bearer <your_api_key>" \
   -F "files=@/path/to/contract.pdf" \
-  -F "tenant_id=my_first_tenant"
+ -F "tenant_id=my_first_tenant"
 ```
+**Response:""
 
-### Option B — Upload user memories (text, markdown, conversations)
+```json
+{
+    "success": true,
+    "message": "Knowledge uploaded successfully",
+    "results": [
+        {
+            "source_id": "ef3ea754019855e2b39e9ab5c2d26096",
+            "filename": "Tutorial-6.pdf",
+            "status": "queued",
+            "error": null
+        }
+    ],
+    "success_count": 1,
+    "failed_count": 0
+}
+```	
+
+### Option B: Upload user memories (text, markdown, conversations)
 
 Use this for user preferences, conversation history, or inline text.
 
+> A list of all memories, along with their status, is available on [app.hydradb.com/knowledge](https://app.hydradb.com/knowledge)
+
 ```bash
 curl -X POST 'https://api.hydradb.com/memories/add_memory' \
-  -H "Authorization: Bearer <your_api_key>" \
+ -H "Authorization: Bearer <your_api_key>" \
   -H "Content-Type: application/json" \
-  -d '{
+ -d '{
     "tenant_id": "my_first_tenant",
     "memories": [
-      {
+ {
         "text": "User prefers detailed technical explanations and dark mode",
         "infer": true,
         "user_name": "Alex"
-      }
-    ]
-  }'
+ }
+ ]
+ }'
+```
+**Response**:
+
+``` json
+{
+    "success": true,
+    "message": "Memories queued for ingestion successfully",
+    "results": [
+        {
+            "source_id": "1d50e5cd7c196a2bbcc1a59b037b3a44",
+            "title": null,
+            "status": "queued",
+            "infer": true,
+            "error": null
+        }
+    ],
+    "success_count": 1,
+    "failed_count": 0
+}
 ```
 
-Both return a `source_id` you can use to track processing and reference the memory later.
+Both return a `source_id` which you can use to track processing and reference the memory later.
 
 ---
 
@@ -121,25 +183,42 @@ Ingestion runs through a pipeline before content is searchable:
 
 ```mermaid
 flowchart LR
-    Q[queued] --> P[processing]
-    P --> G[graph_creation]
-    G --> C[completed]
-    P -.failure.-> E[errored]
-    G -.failure.-> E
+ Q[queued] --> P[processing]
+ P --> G[graph_creation]
+ G --> C[completed]
+ P -.failure.-> E[error]
+ G -.failure.-> E
 
-    style C fill:#e8f8ea
-    style E fill:#ffe8e8
+ style C fill:#e8f8ea
+ style E fill:#ffe8e8
 ```
 
 Check status any time:
 
 ```bash
 curl -X POST \
-  'https://api.hydradb.com/ingestion/verify_processing?file_ids=<source_id>&tenant_id=my_first_tenant' \
+ 'https://api.hydradb.com/ingestion/verify_processing?file_ids=<source_id>&tenant_id=my_first_tenant' \
   -H "Authorization: Bearer <your_api_key>"
 ```
 
-Poll every few seconds until status is `completed`. Most documents index in 1–5 minutes; larger documents take longer.
+**Response:**
+
+``` json
+{
+    "statuses": [
+        {
+            "file_id": "<source_id>",
+            "indexing_status": "completed",
+            "error_code": "",
+            "error_message": "",
+            "success": true,
+            "message": "Processing status retrieved successfully"
+        }
+    ]
+}
+```
+
+Poll every few seconds until the status is `completed`. Most documents index in 1–5 minutes; larger documents take longer.
 
 ---
 
@@ -149,17 +228,16 @@ Now the interesting part. Ask HydraDB what it knows:
 
 ```bash
 curl -X POST 'https://api.hydradb.com/recall/full_recall' \
-  -H "Authorization: Bearer <your_api_key>" \
+ -H "Authorization: Bearer <your_api_key>" \
   -H "Content-Type: application/json" \
-  -d '{
+ -d '{
     "tenant_id": "my_first_tenant",
     "query": "What are the pricing tiers?",
     "max_results": 5,
     "mode": "thinking",
     "graph_context": true
-  }'
+ }'
 ```
-
 **Flags worth knowing:**
 
 - `mode: "thinking"` enables personalized, multi-stage recall (higher latency, better results). The default is `"fast"` — simpler retrieval without personalization.
@@ -171,61 +249,53 @@ curl -X POST 'https://api.hydradb.com/recall/full_recall' \
 ```json
 {
   "chunks": [
-    {
+ {
       "chunk_uuid": "a1b2c3d4-...",
       "source_id": "doc_12345",
       "chunk_content": "The team discussed tiered pricing: $29/month Starter, $79/month Pro, $199/month Enterprise...",
       "source_title": "Q4 Pricing Strategy",
       "relevancy_score": 0.92,
       "document_metadata": { "author": "Product Team" }
-    }
-  ],
+ }
+ ],
   "graph_context": {
     "query_paths": [
-      {
+ {
         "triplets": [
-          {
+ {
             "source": { "name": "Pricing Strategy" },
             "relation": { "canonical_predicate": "OWNED_BY" },
             "target": { "name": "Product Team" }
-          }
-        ]
-      }
-    ],
+ }
+ ]
+ }
+ ],
     "chunk_relations": [],
     "chunk_id_to_group_ids": {}
-  }
+ }
 }
 ```
 
-The `chunks` array contains retrieved content ranked by relevance. The `graph_context` object contains entity relationships HydraDB extracted from your data — useful for reasoning about *how* things connect, not just *what* was said.
-
-<Info>
-**`graph_context` populates only when:**
-- You set `graph_context: true` in the request, and
-- Your ingested content has linked relationships in the graph.
-
-If either condition is missing, the fields return as empty arrays. See [Context Graphs](/essentials/context-graphs) for details.
-</Info>
+The `chunks` array contains retrieved content ranked by relevance. The `graph_context` object contains entity relationships that HydraDB extracted from your data, which is useful for reasoning about *how* things connect, not just *what* was said.
 
 ---
 
 ## Step 5 — Pass it to your LLM
 
-The `full_recall` response is JSON. Your LLM wants a clean string. Flatten chunks and graph context into a readable format, then pass it as context in your prompt.
+The `full_recall` response is JSON. Your LLM wants a clean string. Flatten chunks and graph context into a readable format, then pass it as prompt context.
 
-For a production-ready Python and TypeScript implementation, see [How to Use API Results](/essentials/api-results) — it includes a `build_context_string()` function you can drop into your codebase.
+For a production-ready Python and TypeScript implementation, see [How to Use API Results](/essentials/api-results). It includes a `build_context_string()` function you can drop into your codebase.
 
 ---
 
 ## You're done
 
-That's the full loop: create a tenant, ingest content, wait for processing, recall context, feed it to an LLM. Everything else in HydraDB — metadata filters, sub-tenants, graph traversal, personalization — builds on this foundation.
+That's the full loop: create a tenant, ingest content, wait for processing, recall context, feed it to an LLM. Everything else in HydraDB - metadata filters, sub-tenants, and graph traversal personalization - builds on this foundation.
 
 **Where to go next:**
 
-- [Essentials](/essentials) — deeper coverage of recall, memories, metadata, and context graphs
-- [API Reference](/api-reference) — full endpoint documentation and schemas
-- [SDKs](/sdk/overview) — TypeScript and Python clients
+- [Essentials](/essentials) for deeper coverage of recall, memories, metadata, and context graphs
+- [API Reference](/api-reference) for full endpoint documentation and schemas
+- [Cookbooks](/cookbooks) for use cases.
 
 Stuck? Reach out at [founders@hydradb.com](mailto:founders@hydradb.com).
